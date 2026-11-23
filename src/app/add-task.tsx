@@ -10,27 +10,103 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View
+  View,
 } from 'react-native';
 
+const BG_IMAGE =
+  'https://img.magnific.com/free-vector/isometric-time-management-concept-illustrated_52683-55534.jpg?semt=ais_hybrid&w=740&q=80';
+const BANNER_IMAGE =
+  'https://static.vecteezy.com/system/resources/previews/016/921/110/non_2x/business-task-management-illustration-concept-on-white-background-vector.jpg';
+
 export default function AddTaskScreen() {
-    const [taskName, setTaskName] = useState('');
-    const [taskDescription, setTaskDescription] = useState('');
+  const [taskName, setTaskName] = useState('');
+  const [taskDescription, setTaskDescription] = useState('');
 
-    const saveTask = async () => {
-        if (!moduleCode || !taskName) {
-            Alert .alert('Error', 'Please fill in all fields.');
-            return:
-        }
+  const saveTask = async () => {
+    if (!taskName.trim() || !taskDescription.trim()) {
+      Alert.alert('Error', 'Please fill in all fields');
+      return;
+    }
 
-        try {
-            // 1.Fetch existing tasks
-            const existingTasks = await AsyncStorage.getItem('tasks');
-            let tasksArray = existingTasks ? JSON.parse(existingTasks) : [];
+    try {
+      const existingTasks = await AsyncStorage.getItem('tasks');
+      const tasksArray = existingTasks ? JSON.parse(existingTasks) : [];
 
-            // 2.Add the new task
-            const newTask = { id:Date.now().toString(), taskName, taskDescription};
-            tasksArray.push(newTask);
+      const newTask = {
+        id: Date.now().toString(),
+        taskName: taskName.trim(),
+        taskDescription: taskDescription.trim(),
+      };
+      tasksArray.push(newTask);
 
-            //3.Save back to storage using JSON.stringify
-        }
+      await AsyncStorage.setItem('tasks', JSON.stringify(tasksArray));
+
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: 'Task Saved Successfully! 📚',
+          body: `Don't forget to complete ${newTask.taskName}.`,
+        },
+        trigger: null,
+      });
+
+      router.back();
+    } catch (error) {
+      console.error('Failed to save task', error);
+    }
+  };
+
+  return (
+    <ImageBackground source={{ uri: BG_IMAGE }} style={styles.background}>
+      <View style={styles.container}>
+        <Image source={{ uri: BANNER_IMAGE }} style={styles.banner} resizeMode="contain" />
+
+        <Text style={styles.label}>Task Name</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Enter task name"
+          value={taskName}
+          onChangeText={setTaskName}
+        />
+
+        <Text style={styles.label}>Task Description</Text>
+        <TextInput
+          style={[styles.input, styles.textArea]}
+          placeholder="Enter task description"
+          value={taskDescription}
+          onChangeText={setTaskDescription}
+          multiline
+          numberOfLines={4}
+          textAlignVertical="top"
+        />
+
+        <TouchableOpacity style={styles.button} onPress={saveTask}>
+          <Text style={styles.buttonText}>Save Task</Text>
+        </TouchableOpacity>
+      </View>
+    </ImageBackground>
+  );
+}
+
+const styles = StyleSheet.create({
+  background: { flex: 1 },
+  container: { flex: 1, padding: 20, backgroundColor: 'rgba(255,255,255,0.88)' },
+  banner: { width: '100%', height: 150, marginBottom: 16, borderRadius: 8 },
+  label: { fontSize: 15, fontWeight: '600', marginBottom: 6 },
+  input: {
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 6,
+    padding: 10,
+    marginBottom: 14,
+  },
+  textArea: { height: 100 },
+  button: {
+    backgroundColor: '#1b5e20',
+    padding: 14,
+    borderRadius: 6,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  buttonText: { color: '#fff', fontWeight: '700', fontSize: 16 },
+});
